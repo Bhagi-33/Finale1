@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Waste-to-Wealth Idea Lab — Single Page App</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#10b981; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+      --glass-2: rgba(255,255,255,0.02);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; background:linear-gradient(180deg,#071025 0%, #0f1724 100%); color:#e6eef8; -webkit-font-smoothing:antialiased}
+    .app{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;gap:16px;align-items:center}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo .badge{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:grid;place-items:center;font-weight:700;color:#012;box-shadow:0 8px 30px rgba(2,6,23,0.7)}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-top:18px}
+    .card{background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.02));border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(2,6,23,0.6);}
+
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input[type="text"], textarea, select{width:100%;padding:10px;border-radius:8px;border:0;background:var(--glass);color:inherit;font-size:14px}
+    textarea{min-height:86px;resize:vertical}
+    button{background:var(--accent);border:0;color:#012;padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .small{padding:8px 10px;font-size:13px}
+
+    .ideas{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+    .idea-card{padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));display:flex;gap:12px;align-items:flex-start}
+    .idea-meta{min-width:72px}
+    .idea-title{font-weight:700;margin:0}
+    .idea-desc{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+    .sidebar h3{margin:0 0 10px 0}
+    .small-muted{font-size:12px;color:var(--muted)}
+    .tag{display:inline-block;background:var(--glass-2);padding:6px 8px;border-radius:999px;font-size:12px;margin-right:6px}
+
+    footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media (max-width:980px){.grid{grid-template-columns:1fr;}.sidebar{order:-1}}
+
+    /* mini hero svg style in canvas export */
+    .mockup{border-radius:12px;padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="badge">W</div>
+        <div>
+          <h1>Waste-to-Wealth Idea Lab</h1>
+          <p class="lead">Generate, save and export circular-economy project ideas (single-page app).</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main class="card">
+        <div class="controls">
+          <select id="impact" aria-label="Choose impact" title="Focus area">
+            <option value="energy">Energy recovery</option>
+            <option value="upcycle">Upcycling</option>
+            <option value="compost">Composting</option>
+            <option value="logistics">Green logistics</option>
+            <option value="education">Community education</option>
+          </select>
+          <input id="keywords" type="text" placeholder="Keywords (e.g. plastic, scooter, biomass)" />
+          <button id="gen" class="small">Generate Idea</button>
+          <button id="clear" class="ghost small">Clear</button>
+        </div>
+
+        <section style="margin-top:14px;">
+          <label class="small-muted">Generated idea</label>
+          <textarea id="ideaText" placeholder="Your generated idea will appear here..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <button id="saveIdea">Save to Board</button>
+            <button id="exportJSON" class="ghost">Export board (JSON)</button>
+            <button id="downloadPNG" class="ghost">Download card PNG</button>
+            <button id="copy" class="ghost">Copy</button>
+          </div>
+        </section>
+
+        <section class="ideas" id="board" aria-live="polite">
+          <!-- idea cards inserted here -->
+        </section>
+      </main>
+
+      <aside class="card sidebar">
+        <h3>Controls & Tips</h3>
+        <p class="small-muted">Use the generator to quickly create hackathon ideas, add tags, then save them to the board. Click an idea to edit or export a visual mockup.</p>
+
+        <div style="margin-top:12px">
+          <label class="small-muted">Filter by tag</label>
+          <input id="filter" type="text" placeholder="search tag or keyword" />
+        </div>
+
+        <div style="margin-top:12px">
+          <h4 style="margin:0">Saved ideas</h4>
+          <p id="count" class="small-muted">0 ideas</p>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="importDemo" class="ghost small">Load demo</button>
+          <button id="clearAll" class="ghost small">Clear all</button>
+        </div>
+
+        <hr style="margin:14px 0;border-color:rgba(255,255,255,0.03)"/>
+        <div class="mockup" id="preview">
+          <svg id="svgMock" width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="idea mockup">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#08101b" />
+                <stop offset="1" stop-color="#071427" />
+              </linearGradient>
+            </defs>
+            <rect width="320" height="180" rx="12" fill="url(#g1)" />
+            <g id="mock-content" transform="translate(14,18)">
+              <rect width="120" height="120" rx="8" fill="#072b20" />
+              <text x="138" y="18" fill="#9be7c6" font-size="14" font-weight="700">Idea title</text>
+              <text x="138" y="36" fill="#94a3b8" font-size="11">Area · tags</text>
+              <text id="mock-desc" x="138" y="56" fill="#cfeee5" font-size="10">Short description preview — generated idea will appear here.</text>
+            </g>
+          </svg>
+        </div>
+
+        <p style="margin-top:10px" class="small-muted">Tip: use the PNG download to include a visual on slides or reports.</p>
+      </aside>
+    </div>
+
+    <footer class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div class="small-muted">Made for circular-economy brainstorming • Local-only (no servers)</div>
+        <div>
+          <button id="help" class="ghost small">How it works</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Simple SP app logic: generate, save to localStorage, render, filter, export, and PNG export via SVG->canvas
+    const templates = {
+      energy: [
+        'Small-scale bio-digester that converts \{waste\} into biogas for community kitchens, with IoT-based usage tracking.',
+        'Modular micro-CHP unit using processed \{waste\} feedstock to provide power and heat to schools.'
+      ],
+      upcycle: [
+        'Community maker-lab that turns collected \{waste\} into durable furniture — run as a social enterprise.',
+        'Automated sorting + robotic upcycling line that transforms \{waste\} into fashion accessories.'
+      ],
+      compost: [
+        'Neighborhood compost hubs that operate on pay-per-volume and return compost credits to contributors.',
+        'Smart compost bins for apartments that consolidate food waste and offer fertilizer micro-packaging.'
+      ],
+      logistics: [
+        'Reverse logistics platform that optimizes pickup routes for bulky \{waste\} items using crowdsourced drivers.',
+        'Electric cargo-bike network for last-mile pickup of recyclables, with gamified rewards for users.'
+      ],
+      education: [
+        'School curriculum kit and DIY experiments that teach kids how to convert \{waste\} into raw materials.',
+        'AR app that overlays recycling instructions on products to reduce contamination at source.'
+      ]
+    };
+
+    const state = { ideas: [] };
+    const el = id => document.getElementById(id);
+
+    function seedFromStorage(){
+      try{
+        const raw = localStorage.getItem('w2w_board');
+        if(raw) state.ideas = JSON.parse(raw);
+        else state.ideas = [];
+      }catch(e){state.ideas=[]}
+    }
+
+    function persist(){ localStorage.setItem('w2w_board', JSON.stringify(state.ideas)); render(); }
+
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+    function generateIdea(){
+      const impact = el('impact').value;
+      const kw = el('keywords').value.trim();
+      const pool = templates[impact] || [].concat(...Object.values(templates));
+      let text = pick(pool);
+      text = text.replace(/\\\{waste\\\}/g, kw || 'local waste');
+      // add quick metrics
+      const est = Math.floor(Math.random()*60)+10;
+      const co2 = Math.floor(Math.random()*500)+20;
+      const result = `${text}\n\nEstimated initial capex: $${est}k · CO₂ saved/year: ~${co2}kg`;
+      el('ideaText').value = result;
+    }
+
+    function render(){
+      const board = el('board'); board.innerHTML='';
+      const filter = el('filter').value.trim().toLowerCase();
+      state.ideas.forEach((item, idx)=>{
+        if(filter && !(item.title.toLowerCase().includes(filter) || item.desc.toLowerCase().includes(filter) || (item.tags||'').toLowerCase().includes(filter))) return;
+        const div = document.createElement('div'); div.className='idea-card';
+        div.innerHTML = `
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="idea-title">${escapeHtml(item.title)}</div>
+                <div class="idea-desc">${escapeHtml(item.desc)}</div>
+              </div>
+              <div style="text-align:right;font-size:12px;color:var(--muted)">${item.area}</div>
+            </div>
+            <div style="margin-top:8px">${(item.tags||'').split(',').filter(Boolean).map(t=>`<span class='tag'>${escapeHtml(t.trim())}</span>`).join('')}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <button class="ghost small" data-idx='${idx}' data-action='edit'>Edit</button>
+            <button class="ghost small" data-idx='${idx}' data-action='del'>Delete</button>
+            <button class="ghost small" data-idx='${idx}' data-action='png'>PNG</button>
+          </div>
+        `;
+        board.appendChild(div);
+      });
+      el('count').textContent = `${state.ideas.length} ideas`;
+    }
+
+    function addIdeaFromText(){
+      const text = el('ideaText').value.trim(); if(!text) return alert('No idea to save');
+      // parse title as first line or short
+      const first = text.split('\n')[0];
+      const tags = el('keywords').value.split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).join(', ');
+      const newIdea = { title: first.slice(0,60), desc: text.slice(first.length).trim() || text, area: el('impact').value, tags };
+      state.ideas.unshift(newIdea);
+      persist();
+      el('ideaText').value = '';
+    }
+
+    function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function handleBoardClick(e){
+      const btn = e.target.closest('button'); if(!btn) return;
+      const idx = Number(btn.dataset.idx);
+      const action = btn.dataset.action;
+      if(action==='del'){ if(confirm('Delete this idea?')){ state.ideas.splice(idx,1); persist(); } }
+      if(action==='edit'){ const it = state.ideas[idx]; el('ideaText').value = `${it.title}\n\n${it.desc}`; }
+      if(action==='png'){ downloadCardAsPNG(idx); }
+    }
+
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(state.ideas, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='waste-to-wealth-board.json'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function downloadCardAsPNG(index){
+      const idea = state.ideas[index]; if(!idea) return;
+      // update SVG mockup
+      const mockDesc = document.getElementById('mock-desc');
+      const svg = document.getElementById('svgMock');
+      svg.querySelector('#mock-content text:nth-child(2)')?.setAttribute('fill','#9be7c6');
+      svg.querySelector('text:nth-of-type(2)')?.textContent = idea.title;
+      mockDesc.textContent = idea.desc.slice(0,140);
+      // serialize
+      const serializer = new XMLSerializer();
+      const svgStr = serializer.serializeToString(svg);
+      const svgBlob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = function(){
+        const canvas = document.createElement('canvas'); canvas.width = svg.width.baseVal.value; canvas.height = svg.height.baseVal.value;
+        const ctx = canvas.getContext('2d'); ctx.fillStyle='#071427'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function(blob){
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (idea.title.slice(0,20).replace(/[^a-z0-9]/gi,'_') || 'idea') + '.png'; a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      };
+      img.onerror = ()=>alert('Unable to prepare image');
+      img.src = url;
+    }
+
+    // small utility buttons
+    function clearAll(){ if(confirm('Clear all saved ideas?')){ state.ideas=[]; persist(); } }
+    function loadDemo(){ state.ideas = [
+      {title:'Bio-brick maker from organic waste', desc:'Collect food waste from 100 households to produce compressed bio-bricks for low-cost heating. Community-run pilot with revenue share.', area:'compost', tags:'biomass,community'},
+      {title:'Reverse pickup by cargo-bike network', desc:'Electric cargo bikes pickup recyclables and route-optimise using live traffic to reduce CO₂. Earn credits per pickup.', area:'logistics', tags:'transport,electric'}
+    ]; persist(); }
+
+    // copy to clipboard
+    function copyIdea(){ const t = el('ideaText').value; if(!t) return; navigator.clipboard.writeText(t).then(()=>alert('Copied!')); }
+
+    // quick help
+    function showHelp(){ alert('Waste-to-Wealth Idea Lab:\n\n• Generate ideas using templates and keywords.\n• Save to the board.\n• Filter, edit, delete, export JSON or PNG visual mockups.\n• All data is saved locally in your browser (localStorage).'); }
+
+    // event wiring
+    document.addEventListener('DOMContentLoaded', ()=>{
+      seedFromStorage(); render();
+      el('gen').addEventListener('click', generateIdea);
+      el('saveIdea').addEventListener('click', addIdeaFromText);
+      el('clear').addEventListener('click', ()=>{ el('ideaText').value=''; el('keywords').value=''; });
+      el('board').addEventListener('click', handleBoardClick);
+      el('exportJSON').addEventListener('click', exportJSON);
+      el('downloadPNG').addEventListener('click', ()=>{ if(state.ideas.length) downloadCardAsPNG(0); else alert('Save an idea first'); });
+      el('filter').addEventListener('input', render);
+      el('clearAll').addEventListener('click', clearAll);
+      el('importDemo').addEventListener('click', loadDemo);
+      el('copy').addEventListener('click', copyIdea);
+      el('help').addEventListener('click', showHelp);
+
+      // keyboard shortcut: Ctrl+G generate
+      document.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='g'){ e.preventDefault(); generateIdea(); } });
+    });
+  </script>
+</body>
+</html>
